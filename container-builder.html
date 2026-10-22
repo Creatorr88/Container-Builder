@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Container Builder</title>
+    <style>
+      :root {
+        --bg: #f6f5f3;
+        --surface: #ffffff;
+        --surface-2: #efece8;
+        --ink: #201c26;
+        --ink-2: #5d5769;
+        --line: #ddd8e0;
+        --accent: #7c4da0;
+        --accent-ink: #ffffff;
+        --accent-soft: #efe6f6;
+        --slot: #e9e6e1;
+        --slot-line: #c9c3cc;
+        --slot-filled: #ded3ea;
+        --code-bg: #17131d;
+        --code-ink: #e8e2f2;
+        --ok: #2e7d4f;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #121016;
+          --surface: #1c1922;
+          --surface-2: #262230;
+          --ink: #ece9f2;
+          --ink-2: #a89fb8;
+          --line: #373144;
+          --accent: #b48ce0;
+          --accent-ink: #1c1426;
+          --accent-soft: #2e2440;
+          --slot: #282333;
+          --slot-line: #453b58;
+          --slot-filled: #3d2f57;
+          --code-bg: #0c0a10;
+          --code-ink: #e8e2f2;
+          --ok: #6fce96;
+          color-scheme: dark;
+        }
+      }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      html { -webkit-text-size-adjust: 100%; scroll-padding-bottom: 120px; }
+      button, input, select, textarea, a { touch-action: manipulation; }
+      img { max-width: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-system, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 20px max(16px, env(safe-area-inset-right)) 128px max(16px, env(safe-area-inset-left));
+      }
+      h2 {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-2);
+        margin: 0 0 10px;
+      }
+      section { margin-bottom: 26px; }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+      }
+
+      /* ---------- container picker ---------- */
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .chip img { width: 22px; height: 22px; aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; flex: none; }
+      .chip:hover { border-color: var(--accent); }
+      .chip[aria-pressed="true"] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      .swatches { display: none; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .swatches.show { display: flex; }
+      .swatch {
+        width: 46px; height: 46px; aspect-ratio: 1 / 1;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        cursor: pointer;
+        padding: 3px;
+        appearance: none;
+        background: var(--surface);
+      }
+      .swatch img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block; }
+      .swatch[aria-pressed="true"] { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px; }
+
+      /* ---------- container preview ---------- */
+      .preview {
+        display: flex; align-items: center; gap: 14px;
+        margin-top: 14px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .preview .pimg { width: 72px; height: 72px; aspect-ratio: 1 / 1; flex: none; display: block; }
+      .preview .pimg img { width: 100%; height: 100%; aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; display: block; }
+      .preview .pname { font-size: 16px; font-weight: 700; line-height: 1.25; }
+      .preview .pid { font-size: 12px; color: var(--ink-2); font-family: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace; margin-top: 3px; word-break: break-all; }
+
+      /* ---------- fields ---------- */
+      .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 560px) { .fields { grid-template-columns: 1fr; } }
+      label.flabel { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+      input[type="text"], input[type="search"], input[type="number"] {
+        width: 100%;
+        font: inherit;
+        font-size: 16px; /* 16px stops iOS Safari auto-zoom on focus */
+        -webkit-appearance: none;
+        appearance: none;
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        min-height: 44px;
+      }
+      input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+
+      /* ---------- inventory grid ---------- */
+      .grid-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      .grid-head .summary { font-size: 13px; color: var(--ink-2); }
+      .grid-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        min-height: 44px;
+      }
+      .btn:hover { border-color: var(--accent); }
+      .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      .grid {
+        display: grid;
+        gap: 6px;
+      }
+      .slot {
+        appearance: none;
+        position: relative;
+        aspect-ratio: 1 / 1;
+        background: var(--slot);
+        border: 1px solid var(--slot-line);
+        border-radius: 6px;
+        cursor: pointer;
+        padding: 3px;
+        overflow: hidden;
+        font: inherit;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .slot:hover { border-color: var(--accent); }
+      .slot.filled { background: var(--slot-filled); }
+      .slot.selected { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+      .slot .sname {
+        font-size: 10px;
+        line-height: 1.15;
+        font-weight: 600;
+        word-break: break-word;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .slot img.simg {
+        width: 76%; height: 76%;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        image-rendering: pixelated;
+        pointer-events: none;
+      }
+      .slot.has-img .sname { display: none; }
+      .slot .scount {
+        position: absolute;
+        right: 3px; bottom: 1px;
+        font-size: 11px;
+        font-weight: 800;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      }
+      .slot-note { font-size: 12.5px; color: var(--ink-2); margin-top: 10px; }
+      .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+      .presets span { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-right: 2px; }
+
+      /* bundle list */
+      .blist { display: flex; flex-direction: column; gap: 6px; }
+      .brow {
+        display: flex; align-items: center; gap: 10px;
+        background: var(--slot); border: 1px solid var(--slot-line);
+        border-radius: 8px; padding: 8px 10px; min-height: 48px;
+        cursor: pointer; text-align: left; font: inherit; color: var(--ink); width: 100%;
+      }
+      .brow.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .brow .bname { flex: 1; font-weight: 600; font-size: 14px; word-break: break-word; }
+      .brow .bcount { font-weight: 800; font-size: 13px; color: var(--ink-2); }
+      .brow img.bimg { width: 30px; height: 30px; aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; flex: none; }
+      .bempty { font-size: 14px; color: var(--ink-2); padding: 10px 2px; }
+
+      /* ---------- item picker ---------- */
+      .picker-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      .picker-head .cur { flex: 1 1 160px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+      .picker-head .cur img.cimg { width: 30px; height: 30px; aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; flex: none; }
+      .picker-head .cur strong { font-weight: 700; }
+      .picker-head .cur .none { color: var(--ink-2); }
+      .stepper { display: flex; align-items: stretch; gap: 0; }
+      .stepper button {
+        appearance: none; width: 44px; min-height: 44px;
+        border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+        font-size: 18px; font-weight: 700; cursor: pointer;
+      }
+      .stepper button:first-child { border-radius: 8px 0 0 8px; }
+      .stepper button:last-child { border-radius: 0 8px 8px 0; }
+      .stepper input { width: 64px; text-align: center; border-radius: 0; border-left: none; border-right: none; -moz-appearance: textfield; appearance: textfield; }
+      .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+      .results {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+        max-height: 264px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        padding: 2px;
+      }
+      .item-btn {
+        appearance: none;
+        text-align: left;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 11px;
+        cursor: pointer;
+        font: inherit;
+        color: var(--ink);
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .item-btn img.iimg { width: 34px; height: 34px; aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; flex: none; }
+      .item-btn .itext { flex: 1; min-width: 0; }
+      .item-btn:hover { border-color: var(--accent); }
+      .item-btn.active { background: var(--accent-soft); border-color: var(--accent); }
+      .item-btn .iname { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+      .item-btn .iid { display: block; font-size: 11px; color: var(--ink-2); font-family: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace; margin-top: 2px; word-break: break-all; }
+      .custom-row { margin-top: 10px; }
+      .custom-row .btn { width: 100%; }
+      .rcount { font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+
+      /* ---------- output ---------- */
+      .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+      .seg button {
+        appearance: none; border: 0; background: var(--surface);
+        color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600;
+        padding: 9px 14px; cursor: pointer; min-height: 44px;
+      }
+      .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+      .cmd-block { margin-top: 14px; }
+      .cmd-block:first-of-type { margin-top: 16px; }
+      .cmd-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+      .cmd-top .clabel { font-size: 13px; font-weight: 700; }
+      pre.cmd {
+        margin: 0;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-family: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+        font-size: 12.5px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 180px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        user-select: all;
+      }
+      .copy-btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 7px 14px;
+        font: inherit; font-size: 13px; font-weight: 700;
+        cursor: pointer; min-height: 44px;
+      }
+      .copy-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      .copy-btn.copied { color: var(--ok); border-color: var(--ok); background: var(--surface-2); }
+      .note { font-size: 13px; color: var(--ink-2); margin-top: 12px; }
+
+      /* ---------- stack options ---------- */
+      .stack-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+      .stack-label { font-size: 13px; font-weight: 700; color: var(--accent); }
+      .stack-note { font-size: 12.5px; color: var(--ink-2); margin: 8px 0 0; }
+
+      /* ---------- sticky copy bar ---------- */
+      .copybar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+        padding: 10px max(16px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      }
+      .copybar-in { max-width: 880px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+      .cb-summary { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .copybar .copy-btn { flex: none; }
+      @media (max-width: 480px) {
+        .cb-summary { display: none; }
+        .copybar .copy-btn { flex: 1; }
+      }
+      /* ---------- toast / undo ---------- */
+      .toast {
+        position: fixed; left: 50%; transform: translateX(-50%);
+        bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 40;
+        background: var(--code-bg); color: var(--code-ink);
+        border-radius: 999px; padding: 6px 6px 6px 16px;
+        display: none; align-items: center; gap: 12px;
+        font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.28);
+        max-width: calc(100vw - 24px);
+      }
+      .toast.show { display: flex; }
+      .toast button {
+        appearance: none; border: 0; background: var(--accent); color: var(--accent-ink);
+        border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 14px; font-weight: 700;
+        cursor: pointer; min-height: 40px; flex: none;
+      }
+      .btn.armed { background: #b3382e; border-color: #b3382e; color: #fff; }
+      .export-row { margin-top: 12px; }
+      footer { font-size: 12.5px; color: var(--ink-2); margin-top: 30px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section aria-labelledby="h-container">
+        <h2 id="h-container">Container</h2>
+        <div class="chips" id="containerChips" role="group" aria-label="Container type"></div>
+        <div class="swatches" id="colorSwatches" role="group" aria-label="Shulker box color"></div>
+        <div class="preview" id="containerPreview">
+          <span class="pimg"><img id="previewImg" alt="" /></span>
+          <div>
+            <div class="pname" id="previewName"></div>
+            <div class="pid" id="previewId"></div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-details">
+        <h2 id="h-details">Details</h2>
+        <div class="fields">
+          <div>
+            <label class="flabel" for="nameInput">Custom name (optional)</label>
+            <input type="text" id="nameInput" placeholder="e.g. Diamond Kit" autocomplete="off" maxlength="60" />
+          </div>
+          <div>
+            <label class="flabel" for="targetInput">Give to</label>
+            <input type="text" id="targetInput" value="@s" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-contents">
+        <h2 id="h-contents">Contents</h2>
+        <div class="card">
+          <div class="grid-head">
+            <span class="summary" id="gridSummary"></span>
+            <div class="grid-actions">
+              <button class="btn" id="fillAllBtn" type="button">Fill all slots</button>
+              <button class="btn" id="clearAllBtn" type="button">Clear</button>
+              <button class="btn" id="resetBtn" type="button">Start over</button>
+            </div>
+          </div>
+          <div id="gridWrap"></div>
+          <div class="slot-note" id="slotNote" hidden></div>
+          <div class="presets" id="presetRow">
+            <span>Presets:</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-picker">
+        <h2 id="h-picker">Item picker</h2>
+        <div class="card">
+          <div class="picker-head">
+            <div class="cur" id="currentItem"><span class="none">Tap a slot, then tap an item below.</span></div>
+            <div class="stepper" aria-label="Item count">
+              <button type="button" id="countMinus" aria-label="Decrease count">−</button>
+              <input type="number" id="countInput" value="64" min="1" max="99" inputmode="numeric" aria-label="Count" />
+              <button type="button" id="countPlus" aria-label="Increase count">+</button>
+            </div>
+            <button class="btn" id="clearSlotBtn" type="button">Clear slot</button>
+          </div>
+          <div class="stack-row">
+            <button class="chip" type="button" id="oversizeToggle" aria-pressed="false">Allow oversized stacks</button>
+            <span class="stack-label" id="stackLabel"></span>
+          </div>
+          <p class="stack-note" id="oversizeNote" hidden>Oversized stacks are on: counts can go up to 99, but a vanilla server may trim each stack down to its real limit.</p>
+          <input type="search" id="searchInput" placeholder="Search items — try “sword”, “redstone”, “glass”…" autocomplete="off" />
+          <div class="results" id="results"></div>
+          <div class="custom-row" id="customRow" hidden>
+            <button class="btn primary" type="button" id="customBtn"></button>
+          </div>
+          <div class="rcount" id="resultCount"></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-commands">
+        <h2 id="h-commands">Commands</h2>
+        <div class="card">
+          <div class="seg" role="group" aria-label="Command syntax">
+            <button type="button" id="segModern" aria-pressed="true">1.20.5+ components</button>
+            <button type="button" id="segLegacy" aria-pressed="false">1.20.4 &amp; earlier NBT</button>
+          </div>
+          <div class="export-row">
+            <button class="btn primary" type="button" id="exportBtn">Export image</button>
+          </div>
+
+          <div class="cmd-block">
+            <div class="cmd-top">
+              <span class="clabel">Give the filled container</span>
+              <button class="copy-btn" type="button" data-copy="give">Copy</button>
+            </div>
+            <pre class="cmd" id="giveCmd"></pre>
+          </div>
+
+          <div class="cmd-block" id="setblockBlock">
+            <div class="cmd-top">
+              <span class="clabel">Place it in the world (above your feet)</span>
+              <button class="copy-btn" type="button" data-copy="set">Copy</button>
+            </div>
+            <pre class="cmd" id="setCmd"></pre>
+          </div>
+
+          <p class="note" id="outputNote" hidden></p>
+        </div>
+      </section>
+
+      <footer>Java Edition commands. Run them in chat with cheats on, or from a command block / console (drop the leading slash for console). Modern syntax needs 1.20.5 or newer; use the NBT syntax on 1.20.4 and older.</footer>
+    </main>
+
+    <div class="copybar" id="copyBar" hidden>
+      <div class="copybar-in">
+        <span class="cb-summary" id="barSummary"></span>
+        <button class="copy-btn primary" type="button" data-copy="give">Copy /give</button>
+        <button class="copy-btn" type="button" data-copy="set" id="barSetBtn">Copy /setblock</button>
+        <button class="copy-btn" type="button" id="barExportBtn">Export image</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"><span id="toastMsg"></span><button type="button" id="toastUndo">Undo</button></div>
+
+    <script>
+      "use strict";
+
+      /* ---------------- data ---------------- */
+      var CONTAINERS = [
+        { key: "shulker",  label: "Shulker Box",   slots: 27, kind: "box",  base: "shulker_box" },
+        { key: "chest",    label: "Chest",         slots: 27, kind: "blockentity", base: "chest" },
+        { key: "trapped",  label: "Trapped Chest", slots: 27, kind: "blockentity", base: "trapped_chest" },
+        { key: "barrel",   label: "Barrel",        slots: 27, kind: "blockentity", base: "barrel" },
+        { key: "ender",    label: "Ender Chest",   slots: 27, kind: "blockentity", base: "ender_chest" },
+        { key: "hopper",   label: "Hopper",        slots: 5,  kind: "blockentity", base: "hopper" },
+        { key: "dropper",  label: "Dropper",       slots: 9,  kind: "blockentity", base: "dropper" },
+        { key: "dispenser",label: "Dispenser",     slots: 9,  kind: "blockentity", base: "dispenser" },
+        { key: "furnace",  label: "Furnace",       slots: 3,  kind: "blockentity", base: "furnace", slotNames: ["Ingredient", "Fuel", "Result"] },
+        { key: "blast",    label: "Blast Furnace", slots: 3,  kind: "blockentity", base: "blast_furnace", slotNames: ["Ingredient", "Fuel", "Result"] },
+        { key: "smoker",   label: "Smoker",        slots: 3,  kind: "blockentity", base: "smoker", slotNames: ["Ingredient", "Fuel", "Result"] },
+        { key: "bundle",   label: "Bundle",        slots: 0,  kind: "bundle", base: "bundle" }
+      ];
+
+      var COLORS = [
+        { key: "",        label: "Undyed", hex: "#9d7bb8" },
+        { key: "white",   label: "White",  hex: "#e8e8e8" },
+        { key: "light_gray", label: "Light Gray", hex: "#a8a8a8" },
+        { key: "gray",    label: "Gray",   hex: "#5a5a5a" },
+        { key: "black",   label: "Black",  hex: "#1c1c1c" },
+        { key: "brown",   label: "Brown",  hex: "#6b4423" },
+        { key: "red",     label: "Red",    hex: "#a02722" },
+        { key: "orange",  label: "Orange", hex: "#d97c1e" },
+        { key: "yellow",  label: "Yellow", hex: "#e5c61c" },
+        { key: "lime",    label: "Lime",   hex: "#7fb51e" },
+        { key: "green",   label: "Green",  hex: "#4c7c1e" },
+        { key: "cyan",    label: "Cyan",   hex: "#1891a0" },
+        { key: "light_blue", label: "Light Blue", hex: "#3aafd8" },
+        { key: "blue",    label: "Blue",   hex: "#2c3fa0" },
+        { key: "purple",  label: "Purple", hex: "#7c2fb5" },
+        { key: "magenta", label: "Magenta", hex: "#b53fc0" },
+        { key: "pink",    label: "Pink",   hex: "#e08bb0" }
+      ];
+
+      var ITEMS = [
+        ["netherite_sword","Netherite Sword"],["diamond_sword","Diamond Sword"],["iron_sword","Iron Sword"],["golden_sword","Golden Sword"],["stone_sword","Stone Sword"],
+        ["netherite_pickaxe","Netherite Pickaxe"],["diamond_pickaxe","Diamond Pickaxe"],["iron_pickaxe","Iron Pickaxe"],["golden_pickaxe","Golden Pickaxe"],["stone_pickaxe","Stone Pickaxe"],
+        ["netherite_axe","Netherite Axe"],["diamond_axe","Diamond Axe"],["iron_axe","Iron Axe"],
+        ["netherite_shovel","Netherite Shovel"],["diamond_shovel","Diamond Shovel"],["iron_shovel","Iron Shovel"],
+        ["netherite_hoe","Netherite Hoe"],["diamond_hoe","Diamond Hoe"],
+        ["bow","Bow"],["crossbow","Crossbow"],["trident","Trident"],["mace","Mace"],["shield","Shield"],
+        ["fishing_rod","Fishing Rod"],["shears","Shears"],["flint_and_steel","Flint and Steel"],["brush","Brush"],["spyglass","Spyglass"],
+        ["netherite_helmet","Netherite Helmet"],["netherite_chestplate","Netherite Chestplate"],["netherite_leggings","Netherite Leggings"],["netherite_boots","Netherite Boots"],
+        ["diamond_helmet","Diamond Helmet"],["diamond_chestplate","Diamond Chestplate"],["diamond_leggings","Diamond Leggings"],["diamond_boots","Diamond Boots"],
+        ["iron_helmet","Iron Helmet"],["iron_chestplate","Iron Chestplate"],["iron_leggings","Iron Leggings"],["iron_boots","Iron Boots"],
+        ["elytra","Elytra"],["turtle_helmet","Turtle Helmet"],
+        ["golden_carrot","Golden Carrot"],["cooked_beef","Steak"],["cooked_porkchop","Cooked Porkchop"],["bread","Bread"],["baked_potato","Baked Potato"],
+        ["golden_apple","Golden Apple"],["enchanted_golden_apple","Enchanted Golden Apple"],["cooked_chicken","Cooked Chicken"],["cooked_salmon","Cooked Salmon"],
+        ["pumpkin_pie","Pumpkin Pie"],["apple","Apple"],["carrot","Carrot"],["potato","Potato"],["melon_slice","Melon Slice"],["sweet_berries","Sweet Berries"],["honey_bottle","Honey Bottle"],["cooked_cod","Cooked Cod"],
+        ["diamond","Diamond"],["netherite_ingot","Netherite Ingot"],["netherite_scrap","Netherite Scrap"],["ancient_debris","Ancient Debris"],
+        ["iron_ingot","Iron Ingot"],["gold_ingot","Gold Ingot"],["copper_ingot","Copper Ingot"],["emerald","Emerald"],["lapis_lazuli","Lapis Lazuli"],
+        ["redstone","Redstone Dust"],["coal","Coal"],["charcoal","Charcoal"],["stick","Stick"],["string","String"],["leather","Leather"],
+        ["feather","Feather"],["flint","Flint"],["bone","Bone"],["gunpowder","Gunpowder"],["ender_pearl","Ender Pearl"],["blaze_rod","Blaze Rod"],
+        ["ghast_tear","Ghast Tear"],["nether_star","Nether Star"],["totem_of_undying","Totem of Undying"],["experience_bottle","Bottle o' Enchanting"],
+        ["glass_bottle","Glass Bottle"],["paper","Paper"],["book","Book"],["writable_book","Book and Quill"],["name_tag","Name Tag"],["saddle","Saddle"],["lead","Lead"],
+        ["oak_log","Oak Log"],["oak_planks","Oak Planks"],["spruce_log","Spruce Log"],["spruce_planks","Spruce Planks"],["birch_planks","Birch Planks"],["jungle_planks","Jungle Planks"],["dark_oak_planks","Dark Oak Planks"],
+        ["stone","Stone"],["cobblestone","Cobblestone"],["stone_bricks","Stone Bricks"],["bricks","Bricks"],["glass","Glass"],["white_concrete","White Concrete"],["gray_concrete","Gray Concrete"],["black_concrete","Black Concrete"],
+        ["obsidian","Obsidian"],["crying_obsidian","Crying Obsidian"],["dirt","Dirt"],["grass_block","Grass Block"],["sand","Sand"],["gravel","Gravel"],["end_stone","End Stone"],["netherrack","Netherrack"],["nether_bricks","Nether Bricks"],["quartz_block","Block of Quartz"],
+        ["glowstone","Glowstone"],["sea_lantern","Sea Lantern"],["torch","Torch"],["lantern","Lantern"],["soul_lantern","Soul Lantern"],["campfire","Campfire"],["scaffolding","Scaffolding"],["tnt","TNT"],
+        ["crafting_table","Crafting Table"],["furnace","Furnace"],["blast_furnace","Blast Furnace"],["smoker","Smoker"],["chest","Chest"],["trapped_chest","Trapped Chest"],["ender_chest","Ender Chest"],["shulker_box","Shulker Box"],["barrel","Barrel"],["enchanting_table","Enchanting Table"],["anvil","Anvil"],["beacon","Beacon"],["bookshelf","Bookshelf"],["composter","Composter"],["cauldron","Cauldron"],["brewing_stand","Brewing Stand"],["loom","Loom"],["stonecutter","Stonecutter"],["grindstone","Grindstone"],["smithing_table","Smithing Table"],
+        ["hopper","Hopper"],["dropper","Dropper"],["dispenser","Dispenser"],["piston","Piston"],["sticky_piston","Sticky Piston"],["observer","Observer"],
+        ["redstone_block","Block of Redstone"],["redstone_torch","Redstone Torch"],["repeater","Redstone Repeater"],["comparator","Redstone Comparator"],["lever","Lever"],["stone_button","Stone Button"],["oak_door","Oak Door"],["iron_door","Iron Door"],["oak_trapdoor","Oak Trapdoor"],["rail","Rail"],["powered_rail","Powered Rail"],["minecart","Minecart"],["oak_boat","Oak Boat"],
+        ["bucket","Bucket"],["water_bucket","Water Bucket"],["lava_bucket","Lava Bucket"],["milk_bucket","Milk Bucket"],["snowball","Snowball"],["egg","Egg"],
+        ["arrow","Arrow"],["spectral_arrow","Spectral Arrow"],["firework_rocket","Firework Rocket"],["potion","Potion"],["splash_potion","Splash Potion"],
+        ["white_bed","White Bed"],["red_bed","Red Bed"],["white_wool","White Wool"],["oak_sign","Oak Sign"],["item_frame","Item Frame"],["painting","Painting"],["ender_eye","Eye of Ender"],["chorus_fruit","Chorus Fruit"],["dragon_egg","Dragon Egg"],["bedrock","Bedrock"],["command_block","Command Block"],["barrier","Barrier"]
+      ];
+
+      var PRESETS = {
+        "Starter": [["iron_pickaxe",1],["iron_axe",1],["iron_shovel",1],["iron_sword",1],["torch",64],["bread",32],["oak_log",64],["crafting_table",1],["furnace",1],["white_bed",1],["bucket",1]],
+        "Building": [["oak_planks",64],["stone_bricks",64],["glass",64],["oak_log",64],["white_concrete",64],["stone",64],["torch",64],["scaffolding",64],["cobblestone",64]],
+        "Redstone": [["redstone",64],["repeater",16],["comparator",16],["piston",16],["sticky_piston",16],["observer",16],["hopper",16],["dropper",16],["dispenser",16],["lever",16],["redstone_torch",16],["redstone_block",16],["stone",64]],
+        "Combat": [["netherite_sword",1],["shield",1],["bow",1],["arrow",64],["golden_apple",16],["enchanted_golden_apple",2],["ender_pearl",16],["totem_of_undying",1],["totem_of_undying",1],["cooked_beef",64],["elytra",1],["firework_rocket",64]],
+        "Mining": [["netherite_pickaxe",1],["netherite_shovel",1],["torch",64],["cooked_beef",32],["oak_log",64],["crafting_table",1],["water_bucket",1],["iron_ingot",16],["coal",64]]
+      };
+
+      /* ---------------- state ---------------- */
+      var state = {
+        container: CONTAINERS[0],
+        color: "",
+        slots: [],            // grid containers: array of {id,count}|null ; bundle: list of {id,count}
+        selected: 0,
+        currentItem: null,    // item id picked in the picker
+        stash: [],            // grid items whose slot doesn't fit the current container: [{slot, entry}]
+        gridMem: null,        // grid slots+stash remembered while a bundle is open
+        bundleMem: null,      // bundle list remembered while a grid container is open
+        oversized: false,     // allow counts above the vanilla stack size
+        syntax: "modern"
+      };
+
+      function resetSlots() {
+        if (state.container.kind === "bundle") state.slots = [];
+        else state.slots = new Array(state.container.slots).fill(null);
+        state.selected = 0;
+      }
+      resetSlots();
+
+      /* ---------------- helpers ---------------- */
+      var $ = function (id) { return document.getElementById(id); };
+      function fullId(id) { return id.indexOf(":") >= 0 ? id : "minecraft:" + id; }
+      function itemName(id) {
+        for (var i = 0; i < ITEMS.length; i++) if (ITEMS[i][0] === id) return ITEMS[i][1];
+        return id.replace(/^minecraft:/, "").replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+      }
+      function shortName(id) { return itemName(id); }
+      function itemImgSrc(id) { return "assets/items/" + String(id).replace(/^minecraft:/, "") + ".png"; }
+      function shulkerImgSrc() { return "assets/shulkers/" + (state.color || "undyed") + ".png"; }
+      function makeItemImg(id, cls) {
+        var im = document.createElement("img");
+        if (cls) im.className = cls;
+        im.src = itemImgSrc(id);
+        im.alt = "";
+        im.loading = "lazy";
+        im.addEventListener("error", function () { im.remove(); });
+        return im;
+      }
+      function clampCount(n) { n = parseInt(n, 10); if (isNaN(n)) n = 1; return Math.max(1, Math.min(99, n)); }
+
+      /* ------- vanilla stack sizes (Java Edition) ------- */
+      var STACK_1 = {
+        elytra: 1, bow: 1, crossbow: 1, trident: 1, mace: 1, shield: 1,
+        fishing_rod: 1, shears: 1, flint_and_steel: 1, brush: 1, spyglass: 1,
+        totem_of_undying: 1, saddle: 1, writable_book: 1, written_book: 1,
+        enchanted_book: 1, minecart: 1, cake: 1, wolf_armor: 1
+      };
+      var STACK_16 = {
+        ender_pearl: 1, snowball: 1, egg: 1, honey_bottle: 1
+      };
+      function vanillaMax(id) {
+        var b = String(id).replace(/^minecraft:/, "");
+        if (STACK_1[b]) return 1;
+        if (STACK_16[b]) return 16;
+        if (/_sword$|_pickaxe$|_axe$|_shovel$|_hoe$/.test(b)) return 1;              // tools & weapons
+        if (/_helmet$|_chestplate$|_leggings$|_boots$/.test(b)) return 1;           // armor pieces
+        if (/_boat$|_raft$|_minecart$|_horse_armor$/.test(b)) return 1;             // boats, minecarts, horse armor
+        if (b.indexOf("potion") >= 0) return 1;                                      // all potions
+        if (b.indexOf("music_disc") === 0) return 1;                                 // music discs
+        if (b === "bucket") return 16;                                               // empty buckets stack to 16
+        if (/_bucket$/.test(b)) return 1;                                            // filled buckets don't stack
+        if (/_bed$/.test(b)) return 1;                                               // beds don't stack
+        if (b === "shulker_box" || /_shulker_box$/.test(b)) return 1;               // shulker boxes don't stack
+        if (/_sign$|_banner$/.test(b)) return 16;                                    // signs, hanging signs, banners
+        return 64;
+      }
+      function stackMax(id) { return state.oversized ? 99 : vanillaMax(id); }
+      function getCount() { return clampCount($("countInput").value); }
+      function containerItemId() {
+        var c = state.container;
+        if (c.key === "shulker" && state.color) return state.color + "_shulker_box";
+        return c.base;
+      }
+      function filledEntries() {
+        var out = [];
+        for (var i = 0; i < state.slots.length; i++) if (state.slots[i]) out.push([i, state.slots[i]]);
+        return out;
+      }
+      function nameJson() {
+        var n = $("nameInput").value.trim();
+        if (!n) return null;
+        return ('{"text":' + JSON.stringify(n) + "}").replace(/'/g, "\\'");
+      }
+
+      /* ------- non-destructive container switching -------
+         Switching container never deletes items: slots that don't fit the
+         smaller container are kept in state.stash by their slot number and
+         restored when a big enough container is picked again. Grid contents
+         and the bundle list are also remembered across each other. */
+      function switchContainer(c) {
+        var old = state.container;
+        if (c.key === old.key) return;
+        if (c.kind === "bundle") {
+          state.gridMem = { slots: state.slots.slice(), stash: state.stash.slice() };
+          state.slots = state.bundleMem ? state.bundleMem.slice() : [];
+          state.bundleMem = null;
+          state.stash = [];
+        } else {
+          var full = [];
+          if (old.kind === "bundle") {
+            state.bundleMem = state.slots.slice();
+            if (state.gridMem) {
+              state.gridMem.slots.forEach(function (s, i) { if (s) full[i] = s; });
+              state.gridMem.stash.forEach(function (e) { full[e.slot] = e.entry; });
+              state.gridMem = null;
+            }
+          } else {
+            state.slots.forEach(function (s, i) { if (s) full[i] = s; });
+            state.stash.forEach(function (e) { if (!full[e.slot]) full[e.slot] = e.entry; });
+          }
+          var next = new Array(c.slots).fill(null);
+          var st = [];
+          full.forEach(function (s, i) {
+            if (!s) return;
+            if (i < c.slots) next[i] = s; else st.push({ slot: i, entry: s });
+          });
+          state.slots = next;
+          state.stash = st;
+        }
+        state.container = c;
+        state.selected = 0;
+      }
+
+      /* ------- persistence (survives reloads / iOS tab discards) ------- */
+      var LS_KEY = "containerBuilder.v1";
+      function serializeState() {
+        return {
+          v: 1,
+          containerKey: state.container.key,
+          color: state.color,
+          slots: state.slots,
+          stash: state.stash,
+          gridMem: state.gridMem,
+          bundleMem: state.bundleMem,
+          selected: state.selected,
+          currentItem: state.currentItem,
+          oversized: state.oversized,
+          syntax: state.syntax,
+          name: $("nameInput").value,
+          target: $("targetInput").value,
+          count: $("countInput").value
+        };
+      }
+      function applyState(d) {
+        if (!d) return;
+        var c = null;
+        CONTAINERS.forEach(function (x) { if (x.key === d.containerKey) c = x; });
+        if (c) state.container = c;
+        state.color = d.color || "";
+        state.stash = Array.isArray(d.stash) ? d.stash : [];
+        state.gridMem = d.gridMem || null;
+        state.bundleMem = Array.isArray(d.bundleMem) ? d.bundleMem : null;
+        var sl = Array.isArray(d.slots) ? d.slots : [];
+        if (state.container.kind === "bundle") {
+          state.slots = sl;
+        } else {
+          var next = new Array(state.container.slots).fill(null);
+          var st = state.stash.slice();
+          sl.forEach(function (s, i) {
+            if (!s) return;
+            if (i < next.length) next[i] = s; else st.push({ slot: i, entry: s });
+          });
+          state.slots = next;
+          state.stash = st;
+        }
+        state.selected = Math.max(0, Math.min(d.selected || 0, Math.max(0, state.slots.length - 1)));
+        state.currentItem = d.currentItem || null;
+        state.oversized = !!d.oversized;
+        state.syntax = d.syntax === "legacy" ? "legacy" : "modern";
+        $("nameInput").value = d.name || "";
+        $("targetInput").value = d.target || "@s";
+        if (d.count) $("countInput").value = d.count;
+        $("oversizeToggle").setAttribute("aria-pressed", state.oversized ? "true" : "false");
+        $("oversizeNote").hidden = !state.oversized;
+        $("segModern").setAttribute("aria-pressed", state.syntax === "modern" ? "true" : "false");
+        $("segLegacy").setAttribute("aria-pressed", state.syntax === "legacy" ? "true" : "false");
+      }
+      function saveState() {
+        try { localStorage.setItem(LS_KEY, JSON.stringify(serializeState())); } catch (e) {}
+      }
+      function loadState() {
+        try {
+          var raw = localStorage.getItem(LS_KEY);
+          if (raw) applyState(JSON.parse(raw));
+        } catch (e) {}
+      }
+
+      /* ------- undo toast ------- */
+      var undoData = null, undoTimer = null;
+      function pushUndo(msg) {
+        undoData = JSON.parse(JSON.stringify(serializeState()));
+        $("toastMsg").textContent = msg;
+        $("toast").classList.add("show");
+        if (undoTimer) clearTimeout(undoTimer);
+        undoTimer = setTimeout(hideToast, 9000);
+      }
+      function hideToast() {
+        $("toast").classList.remove("show");
+        undoData = null;
+        if (undoTimer) clearTimeout(undoTimer);
+      }
+
+      /* ------- two-tap confirm for destructive buttons ------- */
+      function confirmable(btn, label, fn) {
+        if (btn.dataset.armed === "1") {
+          btn.dataset.armed = "";
+          btn.classList.remove("armed");
+          btn.textContent = label;
+          fn();
+        } else {
+          btn.dataset.armed = "1";
+          btn.classList.add("armed");
+          btn.textContent = "Tap again to confirm";
+          setTimeout(function () {
+            if (btn.dataset.armed === "1") {
+              btn.dataset.armed = "";
+              btn.classList.remove("armed");
+              btn.textContent = label;
+            }
+          }, 3500);
+        }
+      }
+
+      /* ---------------- command building ---------------- */
+      function modernContainerItems() {
+        return filledEntries().map(function (e) {
+          if (state.container.kind === "bundle") return '{item:{id:"' + fullId(e[1].id) + '",count:' + e[1].count + "}}";
+          return '{slot:' + e[0] + ',item:{id:"' + fullId(e[1].id) + '",count:' + e[1].count + "}}";
+        }).join(",");
+      }
+      function nbtItems() {
+        return filledEntries().map(function (e) {
+          return '{Slot:' + e[0] + 'b,id:"' + fullId(e[1].id) + '",Count:' + e[1].count + "b}";
+        }).join(",");
+      }
+      function legacyBundleItems() {
+        return filledEntries().map(function (e) {
+          return '{id:"' + fullId(e[1].id) + '",Count:' + e[1].count + "b}";
+        }).join(",");
+      }
+
+      function buildGive() {
+        var target = $("targetInput").value.trim() || "@s";
+        var id = "minecraft:" + containerItemId();
+        var c = state.container;
+        var hasItems = filledEntries().length > 0;
+        var nj = nameJson();
+
+        if (state.syntax === "modern") {
+          var parts = [];
+          if (hasItems) {
+            if (c.kind === "blockentity") parts.push('minecraft:block_entity_data={id:"minecraft:' + c.base + '",Items:[' + nbtItems() + "]}");
+            else parts.push("minecraft:container=[" + modernContainerItems() + "]");
+          }
+          if (nj) parts.push("minecraft:custom_name='" + nj + "'");
+          return "/give " + target + " " + id + (parts.length ? "[" + parts.join(",") + "]" : "");
+        }
+        // legacy NBT
+        var nbt = [];
+        if (hasItems) {
+          if (c.kind === "bundle") nbt.push("Items:[" + legacyBundleItems() + "]");
+          else if (c.kind === "box") nbt.push("BlockEntityTag:{Items:[" + nbtItems() + "]}");
+          else nbt.push('BlockEntityTag:{id:"minecraft:' + c.base + '",Items:[' + nbtItems() + "]}");
+        }
+        if (nj) nbt.push("display:{Name:'" + nj + "'}");
+        return "/give " + target + " " + id + (nbt.length ? "{" + nbt.join(",") + "}" : "");
+      }
+
+      function buildSetblock() {
+        var c = state.container;
+        if (c.kind === "bundle") return null;
+        var id = "minecraft:" + containerItemId();
+        var parts = [];
+        var nj = nameJson();
+        if (nj) parts.push("CustomName:'" + nj + "'");
+        if (filledEntries().length) parts.push("Items:[" + nbtItems() + "]");
+        return "/setblock ~ ~1 ~ " + id + (parts.length ? "{" + parts.join(",") + "}" : "");
+      }
+
+      /* ---------------- rendering ---------------- */
+      function renderContainerChips() {
+        var wrap = $("containerChips");
+        wrap.innerHTML = "";
+        CONTAINERS.forEach(function (c) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "chip";
+          b.appendChild(makeItemImg(c.base, ""));
+          var chipLabel = document.createElement("span");
+          chipLabel.textContent = c.label;
+          b.appendChild(chipLabel);
+          b.setAttribute("aria-pressed", c.key === state.container.key ? "true" : "false");
+          b.addEventListener("click", function () {
+            switchContainer(c);
+            renderAll();
+          });
+          wrap.appendChild(b);
+        });
+        var sw = $("colorSwatches");
+        sw.innerHTML = "";
+        sw.classList.toggle("show", state.container.key === "shulker");
+        if (state.container.key === "shulker") {
+          COLORS.forEach(function (col) {
+            var s = document.createElement("button");
+            s.type = "button";
+            s.className = "swatch";
+            s.style.background = col.hex;
+            var swImg = document.createElement("img");
+            swImg.src = "assets/shulkers/" + (col.key || "undyed") + ".png";
+            swImg.alt = "";
+            swImg.addEventListener("error", function () { swImg.remove(); });
+            s.appendChild(swImg);
+            s.title = col.label + " Shulker Box";
+            s.setAttribute("aria-label", col.label + " Shulker Box");
+            s.setAttribute("aria-pressed", col.key === state.color ? "true" : "false");
+            s.addEventListener("click", function () { state.color = col.key; renderAll(); });
+            sw.appendChild(s);
+          });
+        }
+      }
+
+      function renderGrid() {
+        var wrap = $("gridWrap");
+        wrap.innerHTML = "";
+        var c = state.container;
+        var filled = filledEntries().length;
+        $("fillAllBtn").style.display = c.kind === "bundle" ? "none" : "";
+
+        if (c.kind === "bundle") {
+          $("gridSummary").textContent = filled + (filled === 1 ? " stack" : " stacks") + " in bundle";
+          var list = document.createElement("div");
+          list.className = "blist";
+          if (!state.slots.length) {
+            var em = document.createElement("div");
+            em.className = "bempty";
+            em.textContent = "Empty — pick items below to add stacks to the bundle.";
+            list.appendChild(em);
+          }
+          state.slots.forEach(function (s, i) {
+            var row = document.createElement("button");
+            row.type = "button";
+            row.className = "brow" + (i === state.selected ? " selected" : "");
+            var nm = document.createElement("span"); nm.className = "bname"; nm.textContent = itemName(s.id);
+            var ct = document.createElement("span"); ct.className = "bcount"; ct.textContent = "× " + s.count;
+            row.appendChild(makeItemImg(s.id, "bimg"));
+            row.appendChild(nm); row.appendChild(ct);
+            row.addEventListener("click", function () {
+              state.selected = i;
+              state.currentItem = s.id;
+              $("countInput").value = s.count;
+              renderAll();
+            });
+            list.appendChild(row);
+          });
+          wrap.appendChild(list);
+          $("slotNote").hidden = false;
+          $("slotNote").textContent = "Tap a stack to select it, then change its count or clear it. Picking an item below adds a new stack.";
+          return;
+        }
+
+        $("gridSummary").textContent = filled + " of " + c.slots + " slots filled — " + c.label;
+        var grid = document.createElement("div");
+        grid.className = "grid";
+        var cols = c.slots >= 9 ? 9 : c.slots;
+        grid.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+        if (c.slots < 9) grid.style.maxWidth = (cols * 64) + "px";
+        state.slots.forEach(function (s, i) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "slot" + (s ? " filled" : "") + (i === state.selected ? " selected" : "");
+          var label = "Slot " + (i + 1);
+          if (c.slotNames && c.slotNames[i]) label += " (" + c.slotNames[i] + ")";
+          if (s) label += ": " + itemName(s.id) + " × " + s.count;
+          b.setAttribute("aria-label", label);
+          b.title = label;
+          if (s) {
+            var simg = document.createElement("img");
+            simg.className = "simg";
+            simg.src = itemImgSrc(s.id);
+            simg.alt = "";
+            simg.addEventListener("error", function () { b.classList.remove("has-img"); simg.remove(); });
+            b.classList.add("has-img");
+            var nm = document.createElement("span"); nm.className = "sname"; nm.textContent = shortName(s.id);
+            var ct = document.createElement("span"); ct.className = "scount"; ct.textContent = s.count;
+            b.appendChild(simg); b.appendChild(nm); b.appendChild(ct);
+          }
+          b.addEventListener("click", function () {
+            state.selected = i;
+            if (s) { state.currentItem = s.id; $("countInput").value = s.count; }
+            renderAll();
+          });
+          grid.appendChild(b);
+        });
+        wrap.appendChild(grid);
+        var notes = [];
+        if (c.slotNames) notes.push("Slots left to right: " + c.slotNames.join(" · ") + ".");
+        if (state.stash.length) {
+          notes.push(state.stash.length + (state.stash.length === 1 ? " item doesn't" : " items don't") +
+            " fit in a " + c.label + " — kept safe and restored if you switch back to a bigger container. They're not in the commands until then.");
+        }
+        if (notes.length) {
+          $("slotNote").hidden = false;
+          $("slotNote").textContent = notes.join(" ");
+        } else {
+          $("slotNote").hidden = true;
+        }
+      }
+
+      function renderPreview() {
+        var c = state.container;
+        var img = $("previewImg");
+        var name;
+        if (c.key === "shulker") {
+          img.src = shulkerImgSrc();
+          var colLabel = "";
+          COLORS.forEach(function (x) { if (x.key === state.color) colLabel = x.label; });
+          name = state.color ? colLabel + " Shulker Box" : "Shulker Box — Undyed";
+        } else {
+          img.src = itemImgSrc(c.base);
+          name = c.label;
+        }
+        img.alt = name;
+        img.onerror = function () { img.removeAttribute("src"); };
+        $("previewName").textContent = name;
+        $("previewId").textContent = "minecraft:" + containerItemId() + (c.kind === "bundle" ? " · holds multiple stacks" : " · " + c.slots + " slots");
+      }
+
+      function renderPresets() {
+        var row = $("presetRow");
+        row.querySelectorAll("button").forEach(function (b) { b.remove(); });
+        Object.keys(PRESETS).forEach(function (name) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "btn";
+          b.textContent = name;
+          b.addEventListener("click", function () { applyPreset(name); });
+          row.appendChild(b);
+        });
+      }
+
+      function applyPreset(name) {
+        pushUndo("Preset applied");
+        var items = PRESETS[name];
+        if (state.container.kind === "bundle") {
+          state.slots = items.map(function (p) { return { id: p[0], count: Math.min(p[1], stackMax(p[0])) }; });
+          state.selected = 0;
+        } else {
+          resetSlots();
+          items.slice(0, state.container.slots).forEach(function (p, i) {
+            state.slots[i] = { id: p[0], count: Math.min(p[1], stackMax(p[0])) };
+          });
+          state.selected = 0;
+        }
+        renderAll();
+      }
+
+      function renderPickerHead() {
+        var cur = $("currentItem");
+        var c = state.container;
+        var sel = c.kind === "bundle" ? state.slots[state.selected] : state.slots[state.selected];
+        if (state.currentItem) {
+          var where = c.kind === "bundle" ? "New stack" : "Slot " + (state.selected + 1);
+          if (sel && sel.id === state.currentItem) where = (c.kind === "bundle" ? "Stack " + (state.selected + 1) : "Slot " + (state.selected + 1));
+          cur.innerHTML = "";
+          cur.appendChild(makeItemImg(state.currentItem, "cimg"));
+          var curTxt = document.createElement("span");
+          var strong = document.createElement("strong");
+          strong.textContent = itemName(state.currentItem);
+          curTxt.appendChild(document.createTextNode(where + ": "));
+          curTxt.appendChild(strong);
+          cur.appendChild(curTxt);
+        } else {
+          cur.innerHTML = '<span class="none">' + (c.kind === "bundle" ? "Tap an item below to add it to the bundle." : "Tap a slot, then tap an item below.") + "</span>";
+        }
+        var lbl = $("stackLabel");
+        if (state.currentItem) {
+          var vm = vanillaMax(state.currentItem);
+          lbl.textContent = "Stacks to " + vm + (state.oversized ? " · oversized on" : "");
+          $("countInput").max = state.oversized ? 99 : vm;
+        } else {
+          lbl.textContent = "";
+          $("countInput").max = state.oversized ? 99 : 64;
+        }
+      }
+
+      function renderResults() {
+        var q = $("searchInput").value.trim().toLowerCase();
+        var res = $("results");
+        res.innerHTML = "";
+        var matches = ITEMS.filter(function (it) {
+          if (!q) return true;
+          return it[1].toLowerCase().indexOf(q) >= 0 || it[0].indexOf(q.replace(/ /g, "_")) >= 0;
+        });
+        var shown = matches.slice(0, 60);
+        shown.forEach(function (it) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "item-btn" + (state.currentItem === it[0] ? " active" : "");
+          b.appendChild(makeItemImg(it[0], "iimg"));
+          var itext = document.createElement("span"); itext.className = "itext";
+          var nm = document.createElement("span"); nm.className = "iname"; nm.textContent = it[1];
+          var idEl = document.createElement("span"); idEl.className = "iid"; idEl.textContent = it[0];
+          itext.appendChild(nm); itext.appendChild(idEl);
+          b.appendChild(itext);
+          b.addEventListener("click", function () { placeItem(it[0]); });
+          res.appendChild(b);
+        });
+        $("resultCount").textContent = matches.length === 0
+          ? "No matches in the built-in list — you can still use it as a custom item ID below."
+          : "Showing " + shown.length + " of " + matches.length + " items. Any item works: type its ID and use the custom button.";
+        var customRow = $("customRow");
+        var norm = q.replace(/\s+/g, "_").replace(/[^a-z0-9_:\/.-]/g, "");
+        var known = ITEMS.some(function (it) { return it[0] === norm; });
+        if (q && norm && !known) {
+          customRow.hidden = false;
+          $("customBtn").textContent = "Use “" + norm + "” as a custom item";
+          $("customBtn").onclick = function () { placeItem(norm); };
+        } else {
+          customRow.hidden = true;
+        }
+      }
+
+      function renderCommands() {
+        $("giveCmd").textContent = buildGive();
+        var set = buildSetblock();
+        var note = $("outputNote");
+        if (state.container.kind === "bundle") {
+          $("setblockBlock").style.display = "none";
+          note.hidden = false;
+          note.textContent = "Bundles are items, not blocks — there's no setblock version. Use the give command.";
+        } else if (state.container.key === "ender") {
+          $("setblockBlock").style.display = "";
+          note.hidden = false;
+          note.textContent = "Heads up: ender chest contents are stored per-player, so a pre-filled ender chest won't actually carry these items when placed. The commands are generated anyway, but the items won't transfer.";
+        } else {
+          $("setblockBlock").style.display = "";
+          note.hidden = true;
+        }
+        if (set) $("setCmd").textContent = set;
+        var bFilled = filledEntries().length;
+        $("copyBar").hidden = bFilled === 0;
+        $("barSummary").textContent = $("previewName").textContent + " · " + (state.container.kind === "bundle"
+          ? bFilled + (bFilled === 1 ? " stack" : " stacks")
+          : bFilled + " of " + state.container.slots + " slots filled");
+        $("barSetBtn").style.display = state.container.kind === "bundle" ? "none" : "";
+      }
+
+      function renderAll() {
+        renderContainerChips();
+        renderPreview();
+        renderGrid();
+        renderPickerHead();
+        renderResults();
+        renderCommands();
+        saveState();
+      }
+
+      /* ---------------- actions ---------------- */
+      function placeItem(id) {
+        var count = Math.min(getCount(), stackMax(id));
+        $("countInput").value = count;
+        state.currentItem = id;
+        if (state.container.kind === "bundle") {
+          var sel = state.slots[state.selected];
+          if (sel && sel.id === id) {
+            sel.count = count;
+          } else {
+            state.slots.push({ id: id, count: count });
+            state.selected = state.slots.length - 1;
+          }
+        } else {
+          state.slots[state.selected] = { id: id, count: count };
+          if (state.selected < state.slots.length - 1) state.selected++;
+        }
+        renderAll();
+      }
+
+      $("fillAllBtn").addEventListener("click", function () {
+        if (state.container.kind === "bundle") return;
+        var id = state.currentItem || (state.slots[state.selected] && state.slots[state.selected].id);
+        if (!id) { $("searchInput").focus(); return; }
+        pushUndo("Filled all slots");
+        var count = Math.min(getCount(), stackMax(id));
+        state.slots = state.slots.map(function () { return { id: id, count: count }; });
+        renderAll();
+      });
+      $("clearAllBtn").addEventListener("click", function () {
+        confirmable($("clearAllBtn"), "Clear", function () {
+          if (!filledEntries().length && !state.stash.length) return;
+          pushUndo("All slots cleared");
+          resetSlots();
+          state.stash = [];
+          renderAll();
+        });
+      });
+      $("resetBtn").addEventListener("click", function () {
+        confirmable($("resetBtn"), "Start over", function () {
+          pushUndo("Started over");
+          applyState({ containerKey: "shulker", color: "", slots: [], stash: [], gridMem: null, bundleMem: null, selected: 0, currentItem: null, oversized: false, syntax: "modern", name: "", target: "@s", count: "64" });
+          renderAll();
+        });
+      });
+      $("clearSlotBtn").addEventListener("click", function () {
+        if (state.container.kind === "bundle") {
+          if (state.slots[state.selected]) {
+            pushUndo("Stack removed");
+            state.slots.splice(state.selected, 1);
+          }
+          state.selected = Math.max(0, Math.min(state.selected, state.slots.length - 1));
+        } else if (state.slots[state.selected]) {
+          pushUndo("Slot cleared");
+          state.slots[state.selected] = null;
+        }
+        renderAll();
+      });
+      $("toastUndo").addEventListener("click", function () {
+        if (!undoData) return;
+        var d = undoData;
+        hideToast();
+        applyState(d);
+        renderAll();
+      });
+
+      function syncCountToSelected() {
+        var s = state.slots[state.selected];
+        if (s && state.currentItem === s.id) { s.count = Math.min(getCount(), stackMax(s.id)); renderGrid(); renderCommands(); renderPickerHead(); }
+        saveState();
+      }
+      $("countInput").addEventListener("input", syncCountToSelected);
+      $("countInput").addEventListener("change", function () {
+        if (state.currentItem) $("countInput").value = Math.min(getCount(), stackMax(state.currentItem));
+        saveState();
+      });
+      $("oversizeToggle").addEventListener("click", function () {
+        state.oversized = !state.oversized;
+        $("oversizeToggle").setAttribute("aria-pressed", state.oversized ? "true" : "false");
+        $("oversizeNote").hidden = !state.oversized;
+        if (!state.oversized) {
+          state.slots.forEach(function (s) { if (s) s.count = Math.min(s.count, vanillaMax(s.id)); });
+          if (state.currentItem) $("countInput").value = Math.min(getCount(), vanillaMax(state.currentItem));
+        }
+        renderAll();
+      });
+      $("countMinus").addEventListener("click", function () { $("countInput").value = clampCount(getCount() - 1); syncCountToSelected(); });
+      $("countPlus").addEventListener("click", function () { $("countInput").value = clampCount(getCount() + 1); syncCountToSelected(); });
+
+      $("searchInput").addEventListener("input", renderResults);
+      $("nameInput").addEventListener("input", function () { renderCommands(); saveState(); });
+      $("targetInput").addEventListener("input", function () { renderCommands(); saveState(); });
+
+      $("segModern").addEventListener("click", function () {
+        state.syntax = "modern";
+        $("segModern").setAttribute("aria-pressed", "true");
+        $("segLegacy").setAttribute("aria-pressed", "false");
+        renderCommands();
+        saveState();
+      });
+      $("segLegacy").addEventListener("click", function () {
+        state.syntax = "legacy";
+        $("segModern").setAttribute("aria-pressed", "false");
+        $("segLegacy").setAttribute("aria-pressed", "true");
+        renderCommands();
+        saveState();
+      });
+
+      document.querySelectorAll(".copy-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var text = btn.getAttribute("data-copy") === "give" ? buildGive() : (buildSetblock() || "");
+          var origLabel = btn.textContent;
+          function done() {
+            btn.textContent = "Copied";
+            btn.classList.add("copied");
+            setTimeout(function () { btn.textContent = origLabel; btn.classList.remove("copied"); }, 1600);
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+          } else fallback();
+          function fallback() {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand("copy"); } catch (e) {}
+            document.body.removeChild(ta);
+            done();
+          }
+        });
+      });
+
+      /* ---------------- export image (vanilla GUI style) ---------------- */
+      function loadImg(src) {
+        return new Promise(function (resolve) {
+          var im = new Image();
+          im.onload = function () { resolve(im); };
+          im.onerror = function () { resolve(null); };
+          im.src = src;
+        });
+      }
+      function downloadBlob(blob, fname) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = fname;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      }
+      function exportTitle() {
+        var n = $("nameInput").value.trim();
+        if (n) return n;
+        if (state.container.key === "shulker") {
+          if (!state.color) return "Shulker Box";
+          var lbl = "";
+          COLORS.forEach(function (x) { if (x.key === state.color) lbl = x.label; });
+          return lbl + " Shulker Box";
+        }
+        return state.container.label;
+      }
+      function exportFileName() {
+        var base = $("nameInput").value.trim() || containerItemId();
+        return base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") + ".png";
+      }
+      function exportImage() {
+        var c = state.container;
+        var entries = [];
+        var cols, rows, total;
+        if (c.kind === "bundle") {
+          cols = 9;
+          rows = Math.max(1, Math.ceil(state.slots.length / 9));
+          total = rows * 9;
+          state.slots.forEach(function (s, i) { entries.push({ pos: i, entry: s }); });
+        } else {
+          cols = (c.key === "dropper" || c.key === "dispenser" || c.slotNames) ? Math.min(3, c.slots) : Math.min(9, c.slots);
+          rows = Math.ceil(c.slots / cols);
+          total = c.slots;
+          state.slots.forEach(function (s, i) { if (s) entries.push({ pos: i, entry: s }); });
+        }
+        var W = 176, pitch = 18;
+        var x0 = Math.round((W - cols * pitch) / 2), y0 = 17;
+        var H = y0 + rows * pitch + 8;
+        var S = 6; // 176 * 6 = 1056 px wide, crisp integer scaling
+        var canvas = document.createElement("canvas");
+        canvas.width = W * S;
+        canvas.height = H * S;
+        var ctx = canvas.getContext("2d");
+        ctx.scale(S, S);
+        ctx.imageSmoothingEnabled = false;
+        // beveled vanilla panel
+        ctx.fillStyle = "#c6c6c6"; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, 1); ctx.fillRect(0, 0, 1, H);
+        ctx.fillStyle = "#555555"; ctx.fillRect(0, H - 1, W, 1); ctx.fillRect(W - 1, 0, 1, H);
+        // title
+        ctx.fillStyle = "#3f3f3f";
+        ctx.font = "8px monospace";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(exportTitle(), 8, 5);
+        // inset slots
+        for (var i = 0; i < total; i++) {
+          var sx = x0 + (i % cols) * pitch, sy = y0 + Math.floor(i / cols) * pitch;
+          ctx.fillStyle = "#8b8b8b"; ctx.fillRect(sx, sy, 18, 18);
+          ctx.fillStyle = "#373737"; ctx.fillRect(sx, sy, 18, 1); ctx.fillRect(sx, sy, 1, 18);
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(sx, sy + 17, 18, 1); ctx.fillRect(sx + 17, sy, 1, 18);
+        }
+        var jobs = entries.map(function (e) {
+          return loadImg(itemImgSrc(e.entry.id)).then(function (im) { return { e: e, im: im }; });
+        });
+        var iconSrc = c.key === "shulker" ? shulkerImgSrc() : itemImgSrc(c.base);
+        jobs.push(loadImg(iconSrc).then(function (im) { return { icon: im }; }));
+        Promise.all(jobs).then(function (results) {
+          var icon = null;
+          results.forEach(function (r) {
+            if (r.icon !== undefined) { icon = r.icon; return; }
+            var x = x0 + (r.e.pos % cols) * pitch, y = y0 + Math.floor(r.e.pos / cols) * pitch;
+            if (r.im) {
+              ctx.drawImage(r.im, x + 1, y + 1, 16, 16);
+            } else {
+              // no local icon (custom/modded item): draw its initials like a label
+              ctx.fillStyle = "#3f3f3f";
+              ctx.font = "6px monospace";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              var initials = itemName(r.e.entry.id).split(" ").map(function (w) { return w.charAt(0); }).join("").slice(0, 2).toUpperCase();
+              ctx.fillText(initials, x + 9, y + 9.5);
+              ctx.textAlign = "left";
+              ctx.textBaseline = "top";
+            }
+            if (r.e.entry.count > 1) {
+              var t = String(r.e.entry.count);
+              ctx.font = "bold 8px monospace";
+              ctx.textAlign = "right";
+              ctx.textBaseline = "alphabetic";
+              ctx.fillStyle = "#3f3f3f"; ctx.fillText(t, x + 17.5, y + 17.5);
+              ctx.fillStyle = "#ffffff"; ctx.fillText(t, x + 16.5, y + 16.5);
+              ctx.textAlign = "left";
+              ctx.textBaseline = "top";
+            }
+          });
+          if (icon) ctx.drawImage(icon, W - 24, 1, 16, 16);
+          var fname = exportFileName();
+          if (!canvas.toBlob) return;
+          canvas.toBlob(function (blob) {
+            if (!blob) return;
+            var file = null;
+            try { file = new File([blob], fname, { type: "image/png" }); } catch (e) {}
+            if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+              navigator.share({ files: [file] }).catch(function () { downloadBlob(blob, fname); });
+            } else {
+              downloadBlob(blob, fname);
+            }
+          }, "image/png");
+        });
+      }
+      $("exportBtn").addEventListener("click", exportImage);
+      $("barExportBtn").addEventListener("click", exportImage);
+
+      renderPresets();
+      loadState();
+      renderAll();
+    </script>
+  </body>
+</html>
